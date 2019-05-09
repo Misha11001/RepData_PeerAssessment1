@@ -14,7 +14,7 @@ shown per day and per interval**
 Code for reading in the dataset and/or processing the data
 ```{r, echo=TRUE}
 library(ggplot2)
-setwd("<working directory>")
+setwd(getwd())
 data<-read.csv("activity.csv", header = TRUE, sep = ",")
 data$date<-as.Date(data$date)
 head(data)
