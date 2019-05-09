@@ -2,24 +2,145 @@
 title: "Reproducible Research: Peer Assessment 1"
 output: 
   html_document:
-    keep_md: true
+keep_md: true
 ---
+Activity Monotiring Assignment
+==========
+
+**This assignment aims to invesigate the activity patters. Average number of steps is 
+shown per day and per interval**
 
 
-## Loading and preprocessing the data
+Code for reading in the dataset and/or processing the data
+```{r, echo=TRUE}
+library(ggplot2)
+setwd("<working directory>")
+data<-read.csv("activity.csv", header = TRUE, sep = ",")
+data$date<-as.Date(data$date)
+head(data)
+```
 
+Calculate mean steps per day
 
+```{r, echo=TRUE}
+steps.per.day <- aggregate(steps ~ date, 
+                           data = data, sum)
+```
 
-## What is mean total number of steps taken per day?
+Histogram of the total number of steps taken each day
 
+```{r, echo=TRUE}
+ggplot(data=steps.per.day, aes(steps.per.day$steps)) + 
+  geom_histogram(bins = 5, color = "#00AFBB")
+```
 
+Mean and median number of steps taken each day
 
-## What is the average daily activity pattern?
+```{r, echo=TRUE}
+sum.stat<-summary(steps.per.day$steps)
+sum.stat[c(3,4)]
+```
 
+Calculate mean steps per interval
 
+```{r, echo=TRUE}
+steps.per.interval <- aggregate(steps ~ data$interval, 
+                                data = data, mean)
+```
 
-## Imputing missing values
+Time series plot of the average number of steps taken
 
+```{r, echo=TRUE}
+ggplot(data=steps.per.interval, aes(steps.per.interval$`data$interval`, 
+                                    steps.per.interval$steps)) + 
+  geom_line()
+```
 
+The 5-minute interval that, on average, contains the maximum number of steps
 
-## Are there differences in activity patterns between weekdays and weekends?
+```{r, echo=TRUE}
+steps.per.interval$`data$interval`[which.max(steps.per.interval$steps)]
+```
+
+Code to describe data
+
+```{r, echo=TRUE}
+sum(is.na(data$steps))
+sum(is.na(data$date))
+sum(is.na(data$interval))
+```
+
+Impute NAs with the average of that interval
+If the value is NA, impute, otherwice keep original
+
+```{r, echo=TRUE}
+data.imputed<-data
+
+for (i in 1:nrow(data.imputed)){
+  if(is.na(data.imputed$steps[i])){
+    data.imputed$steps[i]<- steps.per.interval$steps[
+      steps.per.interval$`data$interval`==data.imputed$interval[i]]
+  }else{
+    data.imputed$steps[i]<-data.imputed$steps[i]}
+}
+
+head(data.imputed)
+```
+
+Calculate mean steps per day for imputed data
+
+```{r, echo=TRUE}
+steps.per.day.imp <- aggregate(steps ~ date, 
+                           data = data.imputed, sum)
+```
+
+Histogram of the total number of steps taken each day after missing values are imputed
+
+```{r, echo=TRUE}
+ggplot(data=steps.per.day.imp, aes(steps.per.day.imp$steps)) + 
+  geom_histogram(bins = 5, color = "#00AFBB")
+```
+
+Calculating summary statistics for imputed data and comparing to non-imputed data 
+
+```{r, echo=TRUE}
+sum.stat.imp<-summary(steps.per.day.imp$steps)
+rbind(sum.stat.imp[c(3,4)], sum.stat[c(3,4)])
+```
+
+Create a new variable "week.days" which would record weekends and weekdays
+
+```{r, echo=TRUE}
+for (i in 1:nrow(data.imputed)){
+  if(weekdays(data.imputed$date[i])=="Samstag"){
+      data.imputed$week.days[i]<- "Weekend"
+  }else if(weekdays(data.imputed$date[i])=="Sonntag"){
+      data.imputed$week.days[i]<- "Weekend"
+  }else{
+      data.imputed$week.days[i]<- "Weekday"
+  }
+}
+```
+
+Create a new factor variable in the dataset with two levels - "weekday" and "weekend" 
+indicating whether a given date is a weekday or weekend day.
+
+```{r, echo=TRUE}
+data.imputed$week.days<-factor(data.imputed$week.days)
+```
+
+Calculate average steps per interval based on imputed data
+
+```{r, echo=TRUE}
+steps.per.interval.imp <- aggregate(steps ~ data.imputed$interval + data.imputed$week.days, 
+                                data = data.imputed, mean)
+```
+
+Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+```{r, echo=TRUE}
+ggplot(data=steps.per.interval.imp, 
+        aes(`data.imputed$interval`, steps)) + 
+                                 geom_line() + 
+                     facet_grid(`data.imputed$week.days`~.)
+```
